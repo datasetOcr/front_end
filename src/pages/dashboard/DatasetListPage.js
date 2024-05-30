@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import AWS from 'aws-sdk';
 import { useState, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 // @mui
@@ -7,6 +8,12 @@ import { LoadingButton } from '@mui/lab';
 import { Card, Table, Button, TableBody, Container, TableContainer } from '@mui/material';
 //
 import axios from '../../utils/axios';
+import {
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_S3_BUCKET,
+  REGION,
+} from '../../config-global';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // utils
@@ -39,10 +46,17 @@ const TABLE_HEAD = [
   { id: 'size', label: 'Size', align: 'left' },
 ];
 
+AWS.config.update({
+  region: REGION,
+  accessKeyId: AWS_ACCESS_KEY_ID,
+  secretAccessKey: AWS_SECRET_ACCESS_KEY,
+});
+
 // ----------------------------------------------------------------------
 
 export default function DatasetListPage() {
   const theme = useTheme();
+  const s3 = new AWS.S3();
 
   const { themeStretch } = useSettingsContext();
 
@@ -133,12 +147,31 @@ export default function DatasetListPage() {
     try {
       console.log('clicked');
       setIsAnalyze(true);
-      const folder = 'dataset/';
-      const data = {
-        key: folder + Date.now().toString(),
-        // values,
+      const files = tableData;
+
+      const uploadFile = async (file) => {
+        const params = {
+          Bucket: AWS_S3_BUCKET,
+          Key: `dataset/${file.name}`,
+          ContentType: file.type,
+        };
+
+        const uploadUrl = await s3.getSignedUrlPromise('putObject', params);
+
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
+          body: file,
+        });
       };
-      const preSignedURL = await axios.post('/dataset/presignedUrl', data);
+      const uploadPromises = Array.from(files).map((file) => uploadFile(file));
+
+      await Promise.all(uploadPromises);
+
+      console.log('Files uploaded successfully');
+      setIsAnalyze(false);
     } catch (error) {
       console.log(error);
     }

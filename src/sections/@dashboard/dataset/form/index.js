@@ -27,24 +27,6 @@ DatasetNewEditForm.propTypes = {
   currentDataset: PropTypes.object,
 };
 
-const keysToFind = [
-  'Emp Id',
-  'Loc',
-  'Status',
-  'Hire Date',
-  'Regular',
-  'Adjustment',
-  'Commission',
-  'Holiday',
-  'Paid Time off',
-  'Total Gross Pay',
-  'Federal Income Tax',
-  'Colorado SITW',
-  'Medicare',
-  'OASDI',
-  'Net Pay',
-];
-
 export default function DatasetNewEditForm({ isEdit, currentDataset }) {
   const navigate = useNavigate();
 
@@ -95,21 +77,6 @@ export default function DatasetNewEditForm({ isEdit, currentDataset }) {
     reset(defaultValues);
   }, [ocrData, defaultValues, reset]);
 
-  const handleSaveAsDraft = async (data) => {
-    setLoadingSave(true);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      reset();
-      setLoadingSave(false);
-      navigate(PATH_DASHBOARD.dataset.list);
-      console.log('DATA', JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error(error);
-      setLoadingSave(false);
-    }
-  };
-
   const handleCreateAndSend = async (data) => {
     setLoadingSend(true);
 
@@ -138,11 +105,7 @@ export default function DatasetNewEditForm({ isEdit, currentDataset }) {
         'Content-Type': 'blob',
       });
       let response;
-      if (dropped === 1) {
-        response = await fetch(values.Formfiles.preview);
-      } else {
-        response = await fetch(values.Tablefiles.preview);
-      }
+
       const blob = await response.blob();
       console.log('blob====', blob);
       await fetch(preSignedURL.data.signedUrl, {

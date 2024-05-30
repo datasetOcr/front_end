@@ -40,7 +40,7 @@ export default function Router() {
     // Main Routes
     {
       element: <DashboardLayout />,
-      children: [{ element: <DatasetCreatePage />, index: true }],
+      children: [{ element: <DatasetListPage />, index: true }],
     },
 
     { path: '*', element: <Navigate to="/404" replace /> },
