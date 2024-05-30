@@ -17,7 +17,7 @@ export default function DatasetCreatePage() {
   return (
     <>
       <Helmet>
-        <title> Dataset: Create a new dataset | Pay-Slip-Parser</title>
+        <title> Dataset: Create a new dataset | Parser</title>
       </Helmet>
 
       <Container maxWidth={themeStretch ? false : 'lg'}>

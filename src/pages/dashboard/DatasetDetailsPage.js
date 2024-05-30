@@ -24,7 +24,7 @@ export default function DatasetDetailsPage() {
   return (
     <>
       <Helmet>
-        <title> Dataset: View | Pay-Slip-Parser</title>
+        <title> Dataset: View | Parser</title>
       </Helmet>
 
       <Container maxWidth={themeStretch ? false : 'lg'}>

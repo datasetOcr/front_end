@@ -24,7 +24,7 @@ export default function DatasetEditPage() {
   return (
     <>
       <Helmet>
-        <title> Dataset: Edit | Pay-Slip-Parser</title>
+        <title> Dataset: Edit | Parser</title>
       </Helmet>
 
       <Container maxWidth={themeStretch ? false : 'lg'}>

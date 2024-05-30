@@ -1,31 +1,17 @@
 import { Helmet } from 'react-helmet-async';
-import { useState } from 'react';
-import sumBy from 'lodash/sumBy';
+import { useState, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 // @mui
 import { useTheme } from '@mui/material/styles';
-import {
-  Tab,
-  Tabs,
-  Card,
-  Table,
-  Stack,
-  Button,
-  Tooltip,
-  Divider,
-  TableBody,
-  Container,
-  IconButton,
-  TableContainer,
-} from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import { Card, Table, Button, TableBody, Container, TableContainer } from '@mui/material';
+//
+import axios from '../../utils/axios';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // utils
 import { fTimestamp } from '../../utils/formatTime';
-// _mock_
-import { _dataset } from '../../_mock/arrays';
 // components
-import Label from '../../components/label';
 import Iconify from '../../components/iconify';
 import Scrollbar from '../../components/scrollbar';
 import ConfirmDialog from '../../components/confirm-dialog';
@@ -38,7 +24,6 @@ import {
   TableNoData,
   TableEmptyRows,
   TableHeadCustom,
-  TableSelectedAction,
   TablePaginationCustom,
 } from '../../components/table';
 // sections
@@ -47,24 +32,11 @@ import { DatasetTableRow, DatasetTableToolbar } from '../../sections/@dashboard/
 
 // ----------------------------------------------------------------------
 
-const SERVICE_OPTIONS = [
-  'weekly',
-  'every-other-week',
-  'twice a month',
-  'monthly',
-  'quarterly',
-  '-- Select Frequency --',
-];
-
 const TABLE_HEAD = [
-  { id: 'datasetNumber', label: 'Dataset Id', align: 'left' },
-  { id: 'createDate', label: 'Create', align: 'left' },
-  { id: 'dueDate', label: 'Due', align: 'left' },
-  { id: 'price', label: 'regular pay', align: 'center' },
-  { id: 'price', label: 'overtime pay', align: 'center' },
-  { id: 'price', label: 'taxes', align: 'center' },
-  { id: 'price', label: 'deductions', align: 'center' },
-  { id: '' },
+  { id: 'type', label: 'Type', align: 'left' },
+  { id: 'name', label: 'File Name', align: 'left' },
+  { id: 'lastModified', label: 'Last Modified', align: 'left' },
+  { id: 'size', label: 'Size', align: 'left' },
 ];
 
 // ----------------------------------------------------------------------
@@ -86,8 +58,6 @@ export default function DatasetListPage() {
     //
     selected,
     setSelected,
-    onSelectRow,
-    onSelectAllRows,
     //
     onSort,
     onChangeDense,
@@ -95,11 +65,13 @@ export default function DatasetListPage() {
     onChangeRowsPerPage,
   } = useTable({ defaultOrderBy: 'createDate' });
 
-  const [tableData, setTableData] = useState(_dataset);
+  const [tableData, setTableData] = useState([]);
 
   const [filterName, setFilterName] = useState('');
 
   const [openConfirm, setOpenConfirm] = useState(false);
+
+  const [isAnalyze, setIsAnalyze] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -108,6 +80,14 @@ export default function DatasetListPage() {
   const [filterService, setFilterService] = useState('all');
 
   const [filterStartDate, setFilterStartDate] = useState(null);
+
+  const fileInputRef = useRef(null);
+
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   const dataFiltered = applyFilter({
     inputData: tableData,
@@ -119,15 +99,24 @@ export default function DatasetListPage() {
     filterEndDate,
   });
 
+  const handleFileChange = (event) => {
+    const fileList = event.target.files;
+    const folderList = [];
+    for (let i = 0; i < fileList.length; i += 1) {
+      const file = fileList[i];
+      if (file.webkitRelativePath && file.webkitRelativePath.indexOf('/') !== -1) {
+        // If the file has a path, it's a directory
+        folderList.push(file);
+      }
+    }
+    // Now folderList contains only directories, do whatever you need with them
+    setTableData(folderList);
+    console.log(folderList);
+  };
+
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const denseHeight = dense ? 56 : 76;
-
-  const isFiltered =
-    filterStatus !== 'all' ||
-    filterName !== '' ||
-    filterService !== 'all' ||
-    (!!filterStartDate && !!filterEndDate);
 
   const isNotFound =
     (!dataFiltered.length && !!filterName) ||
@@ -136,56 +125,22 @@ export default function DatasetListPage() {
     (!dataFiltered.length && !!filterEndDate) ||
     (!dataFiltered.length && !!filterStartDate);
 
-  const getLengthByStatus = (status) => tableData.filter((item) => item.status === status).length;
-
-  const getTotalPriceByStatus = (status) =>
-    sumBy(
-      tableData.filter((item) => item.status === status),
-      'totalPrice'
-    );
-
-  const getPercentByStatus = (status) => (getLengthByStatus(status) / tableData.length) * 100;
-
-  const TABS = [
-    { value: 'all', label: 'All', color: 'info', count: tableData.length },
-    { value: 'paid', label: 'Paid', color: 'success', count: getLengthByStatus('paid') },
-    { value: 'unpaid', label: 'Unpaid', color: 'warning', count: getLengthByStatus('unpaid') },
-    { value: 'overdue', label: 'Overdue', color: 'error', count: getLengthByStatus('overdue') },
-    { value: 'draft', label: 'Draft', color: 'default', count: getLengthByStatus('draft') },
-  ];
-
-  const handleOpenConfirm = () => {
-    setOpenConfirm(true);
-  };
-
   const handleCloseConfirm = () => {
     setOpenConfirm(false);
   };
 
-  const handleFilterStatus = (event, newValue) => {
-    setPage(0);
-    setFilterStatus(newValue);
-  };
-
-  const handleFilterName = (event) => {
-    setPage(0);
-    setFilterName(event.target.value);
-  };
-
-  const handleFilterService = (event) => {
-    setPage(0);
-    setFilterService(event.target.value);
-  };
-
-  const handleDeleteRow = (id) => {
-    const deleteRow = tableData.filter((row) => row.id !== id);
-    setSelected([]);
-    setTableData(deleteRow);
-
-    if (page > 0) {
-      if (dataInPage.length < 2) {
-        setPage(page - 1);
-      }
+  const handlePublish = async () => {
+    try {
+      console.log('clicked');
+      setIsAnalyze(true);
+      const folder = 'dataset/';
+      const data = {
+        key: folder + Date.now().toString(),
+        // values,
+      };
+      const preSignedURL = await axios.post('/dataset/presignedUrl', data);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -206,31 +161,15 @@ export default function DatasetListPage() {
     }
   };
 
-  const handleEditRow = (id) => {
-    navigate(PATH_DASHBOARD.dataset.edit(id));
-  };
-
-  const handleViewRow = (id) => {
-    navigate(PATH_DASHBOARD.dataset.view(id));
-  };
-
-  const handleResetFilter = () => {
-    setFilterName('');
-    setFilterStatus('all');
-    setFilterService('all');
-    setFilterEndDate(null);
-    setFilterStartDate(null);
-  };
-
   return (
     <>
       <Helmet>
-        <title> Dataset: List | Pay-Slip-Parser</title>
+        <title> Dataset: Upload | Parser</title>
       </Helmet>
 
       <Container maxWidth={themeStretch ? false : 'lg'}>
         <CustomBreadcrumbs
-          heading="Dataset List"
+          heading="Dataset Upload"
           links={[
             {
               name: 'Dashboard',
@@ -241,81 +180,41 @@ export default function DatasetListPage() {
               href: PATH_DASHBOARD.dataset.root,
             },
             {
-              name: 'List',
+              name: 'Upload',
             },
           ]}
           action={
-            <Button
-              component={RouterLink}
-              to={PATH_DASHBOARD.dataset.new}
-              variant="contained"
-              startIcon={<Iconify icon="eva:plus-fill" />}
-            >
-              New Dataset
-            </Button>
+            <>
+              <LoadingButton
+                variant="contained"
+                loading={isAnalyze}
+                sx={{ width: '160px', marginRight: 2 }}
+                onClick={() => handlePublish()}
+              >
+                Upload all dataset
+              </LoadingButton>
+
+              <Button
+                variant="contained"
+                startIcon={<Iconify icon="eva:plus-fill" />}
+                onClick={handleButtonClick}
+              >
+                Data Set Add
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                directory="true"
+                webkitdirectory="true"
+              />
+            </>
           }
         />
 
         <Card>
-          <Divider />
-          <DatasetTableToolbar
-            filterName={filterName}
-            isFiltered={isFiltered}
-            filterService={filterService}
-            filterEndDate={filterEndDate}
-            onFilterName={handleFilterName}
-            optionsService={SERVICE_OPTIONS}
-            filterStartDate={filterStartDate}
-            onResetFilter={handleResetFilter}
-            onFilterService={handleFilterService}
-            onFilterStartDate={(newValue) => {
-              setFilterStartDate(newValue);
-            }}
-            onFilterEndDate={(newValue) => {
-              setFilterEndDate(newValue);
-            }}
-          />
-
           <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
-            <TableSelectedAction
-              dense={dense}
-              numSelected={selected.length}
-              rowCount={tableData.length}
-              onSelectAllRows={(checked) =>
-                onSelectAllRows(
-                  checked,
-                  tableData.map((row) => row.id)
-                )
-              }
-              action={
-                <Stack direction="row">
-                  <Tooltip title="Sent">
-                    <IconButton color="primary">
-                      <Iconify icon="ic:round-send" />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip title="Download">
-                    <IconButton color="primary">
-                      <Iconify icon="eva:download-outline" />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip title="Print">
-                    <IconButton color="primary">
-                      <Iconify icon="eva:printer-fill" />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip title="Delete">
-                    <IconButton color="primary" onClick={handleOpenConfirm}>
-                      <Iconify icon="eva:trash-2-outline" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              }
-            />
-
             <Scrollbar>
               <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
                 <TableHeadCustom
@@ -325,27 +224,13 @@ export default function DatasetListPage() {
                   rowCount={tableData.length}
                   numSelected={selected.length}
                   onSort={onSort}
-                  onSelectAllRows={(checked) =>
-                    onSelectAllRows(
-                      checked,
-                      tableData.map((row) => row.id)
-                    )
-                  }
                 />
 
                 <TableBody>
-                  {dataFiltered
+                  {tableData
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((row) => (
-                      <DatasetTableRow
-                        key={row.id}
-                        row={row}
-                        selected={selected.includes(row.id)}
-                        onSelectRow={() => onSelectRow(row.id)}
-                        onViewRow={() => handleViewRow(row.id)}
-                        onEditRow={() => handleEditRow(row.id)}
-                        onDeleteRow={() => handleDeleteRow(row.id)}
-                      />
+                      <DatasetTableRow key={row.lastModified} row={row} />
                     ))}
 
                   <TableEmptyRows
@@ -409,15 +294,15 @@ function applyFilter({
   filterStartDate,
   filterEndDate,
 }) {
-  const stabilizedThis = inputData.map((el, index) => [el, index]);
+  const stabilizedThis = inputData.map((el, index) => ({ data: el, index }));
 
   stabilizedThis.sort((a, b) => {
-    const order = comparator(a[0], b[0]);
+    const order = comparator(a.data, b.data);
     if (order !== 0) return order;
-    return a[1] - b[1];
+    return a.index - b.index;
   });
 
-  inputData = stabilizedThis.map((el) => el[0]);
+  inputData = stabilizedThis.map((el) => el.data);
 
   if (filterName) {
     inputData = inputData.filter(

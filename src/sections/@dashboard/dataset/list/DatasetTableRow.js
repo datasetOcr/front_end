@@ -42,7 +42,7 @@ export default function DatasetTableRow({
   onEditRow,
   onDeleteRow,
 }) {
-  const { sent, datasetNumber, createDate, dueDate, status, datasetTo, totalPrice } = row;
+  const { type, name, lastModified, size } = row;
 
   const [openConfirm, setOpenConfirm] = useState(false);
 
@@ -67,113 +67,22 @@ export default function DatasetTableRow({
   return (
     <>
       <TableRow hover selected={selected}>
-        <TableCell padding="checkbox">
-          <Checkbox checked={selected} onClick={onSelectRow} />
-        </TableCell>
-
         <TableCell>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <CustomAvatar name={datasetTo.name} />
-
             <div>
               <Typography variant="subtitle2" noWrap>
-                {datasetTo.name}
+                {type}
               </Typography>
-
-              <Link
-                noWrap
-                variant="body2"
-                onClick={onViewRow}
-                sx={{ color: 'text.disabled', cursor: 'pointer' }}
-              >
-                {`INV-${datasetNumber}`}
-              </Link>
             </div>
           </Stack>
         </TableCell>
 
-        <TableCell align="left">{fDate(createDate)}</TableCell>
+        <TableCell align="left">{name}</TableCell>
 
-        <TableCell align="left">{fDate(dueDate)}</TableCell>
+        <TableCell align="left">{fDate(lastModified)}</TableCell>
 
-        <TableCell align="center">{fCurrency(totalPrice)}</TableCell>
-
-        <TableCell align="center" sx={{ textTransform: 'capitalize' }}>
-          {sent}
-        </TableCell>
-
-        <TableCell align="left">
-          <Label
-            variant="soft"
-            color={
-              (status === 'paid' && 'success') ||
-              (status === 'unpaid' && 'warning') ||
-              (status === 'overdue' && 'error') ||
-              'default'
-            }
-          >
-            {status}
-          </Label>
-        </TableCell>
-
-        <TableCell align="right">
-          <IconButton color={openPopover ? 'inherit' : 'default'} onClick={handleOpenPopover}>
-            <Iconify icon="eva:more-vertical-fill" />
-          </IconButton>
-        </TableCell>
+        <TableCell align="left">{size}</TableCell>
       </TableRow>
-
-      <MenuPopover
-        open={openPopover}
-        onClose={handleClosePopover}
-        arrow="right-top"
-        sx={{ width: 160 }}
-      >
-        {/* <MenuItem
-          onClick={() => {
-            onViewRow();
-            handleClosePopover();
-          }}
-        >
-          <Iconify icon="eva:eye-fill" />
-          View
-        </MenuItem> */}
-
-        <MenuItem
-          onClick={() => {
-            onEditRow();
-            handleClosePopover();
-          }}
-        >
-          <Iconify icon="eva:edit-fill" />
-          Edit
-        </MenuItem>
-
-        <Divider sx={{ borderStyle: 'dashed' }} />
-
-        <MenuItem
-          onClick={() => {
-            handleOpenConfirm();
-            handleClosePopover();
-          }}
-          sx={{ color: 'error.main' }}
-        >
-          <Iconify icon="eva:trash-2-outline" />
-          Delete
-        </MenuItem>
-      </MenuPopover>
-
-      <ConfirmDialog
-        open={openConfirm}
-        onClose={handleCloseConfirm}
-        title="Delete"
-        content="Are you sure want to delete?"
-        action={
-          <Button variant="contained" color="error" onClick={onDeleteRow}>
-            Delete
-          </Button>
-        }
-      />
     </>
   );
 }
