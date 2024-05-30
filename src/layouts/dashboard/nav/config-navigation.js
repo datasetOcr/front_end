@@ -14,9 +14,9 @@ const navConfig = [
         title: 'dataset',
         path: PATH_DASHBOARD.dataset.root,
         children: [
-          { title: 'list', path: PATH_DASHBOARD.dataset.list },
+          { title: 'Datset upload', path: PATH_DASHBOARD.dataset.list },
           // { title: 'details', path: PATH_DASHBOARD.dataset.demoView },
-          { title: 'create', path: PATH_DASHBOARD.dataset.new },
+          // { title: 'create', path: PATH_DASHBOARD.dataset.new },
           // { title: 'edit', path: PATH_DASHBOARD.dataset.demoEdit },
         ],
       },

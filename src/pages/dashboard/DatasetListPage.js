@@ -3,9 +3,17 @@ import AWS from 'aws-sdk';
 import { useState, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 // @mui
-import { useTheme } from '@mui/material/styles';
+
 import { LoadingButton } from '@mui/lab';
-import { Card, Table, Button, TableBody, Container, TableContainer } from '@mui/material';
+import {
+  Card,
+  Table,
+  Button,
+  TableBody,
+  Container,
+  Typography,
+  TableContainer,
+} from '@mui/material';
 //
 import axios from '../../utils/axios';
 import {
@@ -21,29 +29,33 @@ import { fTimestamp } from '../../utils/formatTime';
 // components
 import Iconify from '../../components/iconify';
 import Scrollbar from '../../components/scrollbar';
-import ConfirmDialog from '../../components/confirm-dialog';
 import CustomBreadcrumbs from '../../components/custom-breadcrumbs';
 import { useSettingsContext } from '../../components/settings';
 import {
   useTable,
-  getComparator,
   emptyRows,
   TableNoData,
   TableEmptyRows,
   TableHeadCustom,
-  TablePaginationCustom,
 } from '../../components/table';
 // sections
-import DatasetAnalytic from '../../sections/@dashboard/dataset/DatasetAnalytic';
-import { DatasetTableRow, DatasetTableToolbar } from '../../sections/@dashboard/dataset/list';
+
+import { DatasetTableRow } from '../../sections/@dashboard/dataset/list';
 
 // ----------------------------------------------------------------------
 
-const TABLE_HEAD = [
+const TABLE_HEAD_1 = [
   { id: 'type', label: 'Type', align: 'left' },
   { id: 'name', label: 'File Name', align: 'left' },
   { id: 'lastModified', label: 'Last Modified', align: 'left' },
   { id: 'size', label: 'Size', align: 'left' },
+];
+
+const TABLE_HEAD_2 = [
+  { id: 'thumb', label: 'Thumb', align: 'left' },
+  { id: 'source', label: 'Source', align: 'left' },
+  { id: 'text', label: 'Text Preview', align: 'left' },
+  { id: 'progress', label: 'progress', align: 'left' },
 ];
 
 AWS.config.update({
@@ -55,63 +67,32 @@ AWS.config.update({
 // ----------------------------------------------------------------------
 
 export default function DatasetListPage() {
-  const theme = useTheme();
   const s3 = new AWS.S3();
 
   const { themeStretch } = useSettingsContext();
 
   const navigate = useNavigate();
 
-  const {
-    dense,
-    page,
-    order,
-    orderBy,
-    rowsPerPage,
-    setPage,
-    //
-    selected,
-    setSelected,
-    //
-    onSort,
-    onChangeDense,
-    onChangePage,
-    onChangeRowsPerPage,
-  } = useTable({ defaultOrderBy: 'createDate' });
+  const { dense, page, order, orderBy, rowsPerPage, selected, onSort } = useTable({
+    defaultOrderBy: 'createDate',
+  });
 
-  const [tableData, setTableData] = useState([]);
+  const [uploadTableData, setUploadTableData] = useState([]);
 
-  const [filterName, setFilterName] = useState('');
-
-  const [openConfirm, setOpenConfirm] = useState(false);
+  const [uploadedTableData, setUploadedTableData] = useState([]);
 
   const [isAnalyze, setIsAnalyze] = useState(false);
 
-  const [filterStatus, setFilterStatus] = useState('all');
-
-  const [filterEndDate, setFilterEndDate] = useState(null);
-
-  const [filterService, setFilterService] = useState('all');
-
-  const [filterStartDate, setFilterStartDate] = useState(null);
+  const [upDate, setUpdate] = useState(false);
 
   const fileInputRef = useRef(null);
 
   const handleButtonClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+      setUpdate(true);
     }
   };
-
-  const dataFiltered = applyFilter({
-    inputData: tableData,
-    comparator: getComparator(order, orderBy),
-    filterName,
-    filterService,
-    filterStatus,
-    filterStartDate,
-    filterEndDate,
-  });
 
   const handleFileChange = (event) => {
     const fileList = event.target.files;
@@ -119,44 +100,40 @@ export default function DatasetListPage() {
     for (let i = 0; i < fileList.length; i += 1) {
       const file = fileList[i];
       if (file.webkitRelativePath && file.webkitRelativePath.indexOf('/') !== -1) {
-        // If the file has a path, it's a directory
         folderList.push(file);
       }
     }
-    // Now folderList contains only directories, do whatever you need with them
-    setTableData(folderList);
+    setUploadTableData(folderList);
     console.log(folderList);
   };
 
-  const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   const denseHeight = dense ? 56 : 76;
-
-  const isNotFound =
-    (!dataFiltered.length && !!filterName) ||
-    (!dataFiltered.length && !!filterStatus) ||
-    (!dataFiltered.length && !!filterService) ||
-    (!dataFiltered.length && !!filterEndDate) ||
-    (!dataFiltered.length && !!filterStartDate);
-
-  const handleCloseConfirm = () => {
-    setOpenConfirm(false);
-  };
 
   const handlePublish = async () => {
     try {
       console.log('clicked');
       setIsAnalyze(true);
-      const files = tableData;
+      const files = uploadTableData;
+      const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
+
+      // Create a unique folder name with the base name and timestamp
+      const folder = `dataset/${uploadTableData[0].name
+        .split('.')
+        .slice(0, -1)
+        .join('.')}_${timestamp}`;
 
       const uploadFile = async (file) => {
         const params = {
           Bucket: AWS_S3_BUCKET,
-          Key: `dataset/${file.name}`,
+          Key: `${folder}/${file.name}`,
           ContentType: file.type,
         };
 
         const uploadUrl = await s3.getSignedUrlPromise('putObject', params);
+        console.log(
+          '---------uploadUrl--------',
+          `https://${params.Bucket}.s3.us-east-1.amazonaws.com/${params.Key}`
+        );
 
         await fetch(uploadUrl, {
           method: 'PUT',
@@ -168,29 +145,24 @@ export default function DatasetListPage() {
       };
       const uploadPromises = Array.from(files).map((file) => uploadFile(file));
 
+      const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+
+      console.log('=======imageFiles======', imageFiles);
+
       await Promise.all(uploadPromises);
 
-      console.log('Files uploaded successfully');
+      const uploadedData = {
+        folder,
+        detailData: files,
+        imageData: imageFiles,
+      };
+      setUploadedTableData((prev) => [...prev, uploadedData]);
+      setUploadTableData([]);
+      console.log('Files uploaded successfully', uploadedData);
+      setUpdate(false);
       setIsAnalyze(false);
     } catch (error) {
       console.log(error);
-    }
-  };
-
-  const handleDeleteRows = (selectedRows) => {
-    const deleteRows = tableData.filter((row) => !selectedRows.includes(row.id));
-    setSelected([]);
-    setTableData(deleteRows);
-
-    if (page > 0) {
-      if (selectedRows.length === dataInPage.length) {
-        setPage(page - 1);
-      } else if (selectedRows.length === dataFiltered.length) {
-        setPage(0);
-      } else if (selectedRows.length > dataInPage.length) {
-        const newPage = Math.ceil((tableData.length - selectedRows.length) / rowsPerPage) - 1;
-        setPage(newPage);
-      }
     }
   };
 
@@ -219,6 +191,7 @@ export default function DatasetListPage() {
           action={
             <>
               <LoadingButton
+                disabled={!upDate}
                 variant="contained"
                 loading={isAnalyze}
                 sx={{ width: '160px', marginRight: 2 }}
@@ -245,7 +218,9 @@ export default function DatasetListPage() {
             </>
           }
         />
-
+        <Typography variant="subtitle2" noWrap>
+          Upload List
+        </Typography>
         <Card>
           <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
             <Scrollbar>
@@ -253,115 +228,63 @@ export default function DatasetListPage() {
                 <TableHeadCustom
                   order={order}
                   orderBy={orderBy}
-                  headLabel={TABLE_HEAD}
-                  rowCount={tableData.length}
+                  headLabel={TABLE_HEAD_1}
+                  rowCount={uploadTableData.length}
                   numSelected={selected.length}
                   onSort={onSort}
                 />
 
                 <TableBody>
-                  {tableData
+                  {uploadTableData
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((row) => (
-                      <DatasetTableRow key={row.lastModified} row={row} />
+                      <DatasetTableRow key={row.lastModified} row={row} state={1} />
                     ))}
 
                   <TableEmptyRows
                     height={denseHeight}
-                    emptyRows={emptyRows(page, rowsPerPage, tableData.length)}
+                    emptyRows={emptyRows(page, rowsPerPage, uploadTableData.length)}
                   />
-
-                  <TableNoData isNotFound={isNotFound} />
                 </TableBody>
               </Table>
             </Scrollbar>
           </TableContainer>
+        </Card>
+        <Typography variant="subtitle2" noWrap sx={{ mt: 2 }}>
+          Uploaded List
+        </Typography>
+        <Card sx={{ mt: 2 }}>
+          <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
+            <Scrollbar>
+              <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <TableHeadCustom
+                  order={order}
+                  orderBy={orderBy}
+                  headLabel={TABLE_HEAD_2}
+                  rowCount={uploadedTableData.length}
+                  numSelected={selected.length}
+                  onSort={onSort}
+                />
 
-          <TablePaginationCustom
-            count={dataFiltered.length}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onPageChange={onChangePage}
-            onRowsPerPageChange={onChangeRowsPerPage}
-            //
-            dense={dense}
-            onChangeDense={onChangeDense}
-          />
+                <TableBody>
+                  {uploadedTableData
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((row) => (
+                      <DatasetTableRow key={row.folder} row={row} state={2} />
+                    ))}
+
+                  <TableEmptyRows
+                    height={denseHeight}
+                    emptyRows={emptyRows(page, rowsPerPage, uploadedTableData.length)}
+                  />
+                </TableBody>
+              </Table>
+            </Scrollbar>
+          </TableContainer>
         </Card>
       </Container>
-
-      <ConfirmDialog
-        open={openConfirm}
-        onClose={handleCloseConfirm}
-        title="Delete"
-        content={
-          <>
-            Are you sure want to delete <strong> {selected.length} </strong> items?
-          </>
-        }
-        action={
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              handleDeleteRows(selected);
-              handleCloseConfirm();
-            }}
-          >
-            Delete
-          </Button>
-        }
-      />
     </>
   );
 }
 
 // ----------------------------------------------------------------------
-
-function applyFilter({
-  inputData,
-  comparator,
-  filterName,
-  filterStatus,
-  filterService,
-  filterStartDate,
-  filterEndDate,
-}) {
-  const stabilizedThis = inputData.map((el, index) => ({ data: el, index }));
-
-  stabilizedThis.sort((a, b) => {
-    const order = comparator(a.data, b.data);
-    if (order !== 0) return order;
-    return a.index - b.index;
-  });
-
-  inputData = stabilizedThis.map((el) => el.data);
-
-  if (filterName) {
-    inputData = inputData.filter(
-      (dataset) =>
-        dataset.datasetNumber.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
-        dataset.datasetTo.name.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
-    );
-  }
-
-  if (filterStatus !== 'all') {
-    inputData = inputData.filter((dataset) => dataset.status === filterStatus);
-  }
-
-  if (filterService !== 'all') {
-    inputData = inputData.filter((dataset) =>
-      dataset.items.some((c) => c.service === filterService)
-    );
-  }
-
-  if (filterStartDate && filterEndDate) {
-    inputData = inputData.filter(
-      (dataset) =>
-        fTimestamp(dataset.createDate) >= fTimestamp(filterStartDate) &&
-        fTimestamp(dataset.createDate) <= fTimestamp(filterEndDate)
-    );
-  }
-
-  return inputData;
-}
