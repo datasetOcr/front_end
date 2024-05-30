@@ -17,9 +17,6 @@ DatasetTableRow.propTypes = {
 export default function DatasetTableRow({ row, selected, state }) {
   const { type, name, lastModified, size, folder, detailData, imageData } = row;
 
-  const data = `https://${AWS_S3_BUCKET}.s3.us-east-1.amazonaws.com/${folder}/${imageData[0]?.name}`;
-
-  console.log('===========row=============', data);
   return (
     <TableRow hover selected={selected}>
       {state === 1 ? (
