@@ -7,9 +7,8 @@ import { PATH_AFTER_LOGIN } from '../config-global';
 import {
   // Dashboard: Dataset
   DatasetListPage,
-  DatasetDetailsPage,
   DatasetCreatePage,
-  DatasetEditPage,
+  DatasetOcrPage,
   //
 } from './elements';
 
@@ -29,8 +28,7 @@ export default function Router() {
           children: [
             { element: <Navigate to="/dashboard/dataset/list" replace />, index: true },
             { path: 'list', element: <DatasetListPage /> },
-            { path: ':id', element: <DatasetDetailsPage /> },
-            { path: ':id/edit', element: <DatasetEditPage /> },
+            { path: 'ocr/:id', element: <DatasetOcrPage /> },
             { path: 'new', element: <DatasetCreatePage /> },
           ],
         },

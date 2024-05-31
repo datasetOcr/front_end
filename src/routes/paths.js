@@ -30,9 +30,8 @@ export const PATH_DASHBOARD = {
     root: path(ROOTS_DASHBOARD, '/dataset'),
     list: path(ROOTS_DASHBOARD, '/dataset/list'),
     new: path(ROOTS_DASHBOARD, '/dataset/new'),
-    view: (id) => path(ROOTS_DASHBOARD, `/dataset/${id}`),
+    view: (id) => path(ROOTS_DASHBOARD, `/dataset/ocr/${id}`),
+    // view: (id) => path(ROOTS_DASHBOARD, `/dataset/${id}`),
     edit: (id) => path(ROOTS_DASHBOARD, `/dataset/${id}/edit`),
-    demoEdit: path(ROOTS_DASHBOARD, '/dataset/e99f09a7-dd88-49d5-b1c8-1daf80c2d7b1/edit'),
-    demoView: path(ROOTS_DASHBOARD, '/dataset/e99f09a7-dd88-49d5-b1c8-1daf80c2d7b5'),
   },
 };

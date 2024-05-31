@@ -2,10 +2,12 @@ import PropTypes from 'prop-types';
 // @mui
 import { Stack, TableRow, TableCell, Typography, Avatar } from '@mui/material';
 // utils
+import { paramCase } from 'change-case';
+import { useNavigate } from 'react-router-dom';
 import { fDate } from '../../../../utils/formatTime';
 import Image from '../../../../components/image';
 import { AWS_S3_BUCKET } from '../../../../config-global';
-
+import { PATH_DASHBOARD } from '../../../../routes/paths';
 // ----------------------------------------------------------------------
 
 DatasetTableRow.propTypes = {
@@ -15,7 +17,15 @@ DatasetTableRow.propTypes = {
 };
 
 export default function DatasetTableRow({ row, selected, state }) {
+  const navigate = useNavigate();
+
   const { type, name, lastModified, size, folder, detailData, imageData } = row;
+
+  const handleCellClick = () => {
+    const param = imageData[0].name;
+    const url = `https://${AWS_S3_BUCKET}.s3.us-east-1.amazonaws.com/${folder}/${imageData[0].name}`;
+    navigate(PATH_DASHBOARD.dataset.view(paramCase(folder)), { state: { url } });
+  };
 
   return (
     <TableRow hover selected={selected}>
@@ -39,7 +49,7 @@ export default function DatasetTableRow({ row, selected, state }) {
         </>
       ) : (
         <>
-          <TableCell>
+          <TableCell onClick={handleCellClick} style={{ cursor: 'pointer' }}>
             <Image
               src={`https://${AWS_S3_BUCKET}.s3.us-east-1.amazonaws.com/${folder}/${imageData[0].name}`}
               sx={{ width: 150, height: 300 }}

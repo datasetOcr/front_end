@@ -17,7 +17,6 @@ import FormProvider, { RHFUploadPdf } from '../../../../components/hook-form';
 import { AWS_S3_BUCKET } from '../../../../config-global';
 //
 import DatasetNewEditDetails from './DatasetNewEditDetails';
-import DatasetNewEditAddress from './DatasetNewEditAddress';
 import DatasetNewEditStatusDate from './DatasetNewEditStatusDate';
 
 // ----------------------------------------------------------------------

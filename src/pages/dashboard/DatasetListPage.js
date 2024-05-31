@@ -178,7 +178,6 @@ export default function DatasetListPage() {
           links={[
             {
               name: 'Dashboard',
-              href: PATH_DASHBOARD.root,
             },
             {
               name: 'Dataset',
