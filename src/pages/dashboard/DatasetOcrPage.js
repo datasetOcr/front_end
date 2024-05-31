@@ -31,8 +31,6 @@ export default function DatasetOcrPage() {
   const location = useLocation();
   const { url, responseData } = location.state || {};
 
-  console.log('---------responseData-----------', responseData);
-  console.log('----------------url-------------------', url);
   const { themeStretch } = useSettingsContext();
 
   const [selection, setSelection] = useState(null);
@@ -136,9 +134,9 @@ export default function DatasetOcrPage() {
               width: 500,
               height: 500,
               border: '1px solid black',
-              display: 'flex', // added to center content
-              alignItems: 'center', // added to center content
-              justifyContent: 'center', // added to center content
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               padding: 2, // added padding for better appearance
             }}
           >
