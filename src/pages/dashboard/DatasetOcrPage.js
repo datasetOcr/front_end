@@ -5,15 +5,10 @@ import AWS from 'aws-sdk';
 
 import { Link as useNavigate, useLocation } from 'react-router-dom';
 // @mui
-import { Card, Container, TextField, Typography, Stack, Box } from '@mui/material';
+import { Card, Container, Typography, Stack, Box } from '@mui/material';
 //
-import axios from '../../utils/axios';
-import {
-  AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY,
-  AWS_S3_BUCKET,
-  REGION,
-} from '../../config-global';
+
+import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, REGION } from '../../config-global';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // utils
@@ -32,14 +27,11 @@ AWS.config.update({
 
 // ----------------------------------------------------------------------
 
-// DatasetOcrPage.propTypes = {
-//   url: PropTypes.string,
-// };
-
 export default function DatasetOcrPage() {
-  const s3 = new AWS.S3();
   const location = useLocation();
-  const { url } = location.state || {};
+  const { url, responseData } = location.state || {};
+
+  console.log('---------responseData-----------', responseData);
   console.log('----------------url-------------------', url);
   const { themeStretch } = useSettingsContext();
 
@@ -129,10 +121,16 @@ export default function DatasetOcrPage() {
           <Box
             sx={{
               width: 500,
-              height: 200,
+              height: 500,
               border: '1px solid black',
+              display: 'flex', // added to center content
+              alignItems: 'center', // added to center content
+              justifyContent: 'center', // added to center content
+              padding: 2, // added padding for better appearance
             }}
-          />
+          >
+            <Typography variant="body1">{responseData}</Typography>
+          </Box>
         </Stack>
       </Container>
     </>
