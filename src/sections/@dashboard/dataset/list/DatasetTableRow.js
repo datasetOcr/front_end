@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 // @mui
-import { Stack, TableRow, TableCell, Typography, Avatar } from '@mui/material';
+import { Stack, TableRow, TableCell, Typography } from '@mui/material';
 // utils
 import { paramCase } from 'change-case';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +22,9 @@ export default function DatasetTableRow({ row, selected, state }) {
   const navigate = useNavigate();
 
   const { type, name, lastModified, size, folder, detailData, imageData } = row;
-
+  const [isLoading, setIsLoading] = useState(false);
   const handleCellClick = async () => {
+    setIsLoading(true);
     const param = imageData[0].name;
     const url = `https://${AWS_S3_BUCKET}.s3.us-east-1.amazonaws.com/${folder}/${imageData[0].name}`;
     const data = { url };
@@ -55,7 +57,10 @@ export default function DatasetTableRow({ row, selected, state }) {
         </>
       ) : (
         <>
-          <TableCell onClick={handleCellClick} style={{ cursor: 'pointer' }}>
+          <TableCell
+            onClick={!isLoading ? handleCellClick : null}
+            style={{ cursor: isLoading ? 'wait' : 'pointer' }}
+          >
             <Image
               src={`https://${AWS_S3_BUCKET}.s3.us-east-1.amazonaws.com/${folder}/${imageData[0].name}`}
               sx={{ width: 150, height: 300 }}

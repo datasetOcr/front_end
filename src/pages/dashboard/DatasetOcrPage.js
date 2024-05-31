@@ -35,26 +35,47 @@ export default function DatasetOcrPage() {
   console.log('----------------url-------------------', url);
   const { themeStretch } = useSettingsContext();
 
-  const [dragging, setDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [endPos, setEndPos] = useState({ x: 0, y: 0 });
+  const [selection, setSelection] = useState(null);
+  const [selectedText, setSelectedText] = useState([]);
   const imageRef = useRef(null);
 
-  const handleMouseDown = (event) => {
+  const handleMouseDown = (e) => {
     const rect = imageRef.current.getBoundingClientRect();
-    setStartPos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
-    setDragging(true);
+    setSelection({
+      startX: (e.clientX - rect.left) / rect.width,
+      startY: (e.clientY - rect.top) / rect.height,
+      endX: null,
+      endY: null,
+    });
   };
 
-  const handleMouseMove = (event) => {
-    if (!dragging) return;
+  const handleMouseMove = (e) => {
+    if (!selection) return;
     const rect = imageRef.current.getBoundingClientRect();
-    setEndPos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+    setSelection((prevSelection) => ({
+      ...prevSelection,
+      endX: (e.clientX - rect.left) / rect.width,
+      endY: (e.clientY - rect.top) / rect.height,
+    }));
   };
 
   const handleMouseUp = () => {
-    setDragging(false);
-    console.log('Drag Area:', { startPos, endPos });
+    if (!selection) return;
+    const { startX, startY, endX, endY } = selection;
+    const left = Math.min(startX, endX);
+    const top = Math.min(startY, endY);
+    const right = Math.max(startX, endX);
+    const bottom = Math.max(startY, endY);
+
+    const selected = responseData
+      .filter((block) => {
+        const { Width, Height, Left, Top } = block.geometry;
+        return Left >= left && Top >= top && Left + Width <= right && Top + Height <= bottom;
+      })
+      .map((block) => block.text);
+
+    setSelectedText(selected);
+    setSelection(null);
   };
 
   return (
@@ -84,40 +105,32 @@ export default function DatasetOcrPage() {
         </Typography>
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1, mt: 3 }}>
-          <Card sx={{ width: 550 }}>
-            <button
-              type="button"
-              ref={imageRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                padding: 0,
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <Image src={url} layout="responsive" width={550} height={350} draggable="false" />
-              {dragging && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: Math.min(startPos.x, endPos.x),
-                    top: Math.min(startPos.y, endPos.y),
-                    width: Math.abs(endPos.x - startPos.x),
-                    height: Math.abs(endPos.y - startPos.y),
-                    border: '1px solid red',
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
-            </button>
-          </Card>
+          <div>
+            <Card sx={{ width: 550 }}>
+              <div
+                ref={imageRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                role="presentation"
+                style={{ position: 'relative', cursor: 'crosshair' }}
+              >
+                <Image src={url} layout="responsive" width={550} height={350} draggable="false" />
+                {selection && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      border: '1px solid blue',
+                      left: `${Math.min(selection.startX, selection.endX) * 100}%`,
+                      top: `${Math.min(selection.startY, selection.endY) * 100}%`,
+                      width: `${Math.abs(selection.endX - selection.startX) * 100}%`,
+                      height: `${Math.abs(selection.endY - selection.startY) * 100}%`,
+                    }}
+                  />
+                )}
+              </div>
+            </Card>
+          </div>
           <Box
             sx={{
               width: 500,
@@ -129,7 +142,17 @@ export default function DatasetOcrPage() {
               padding: 2, // added padding for better appearance
             }}
           >
-            <Typography variant="body1">{responseData}</Typography>
+            {selectedText.length > 0 && (
+              <div>
+                <h3>Selected Text:</h3>
+                <ul>
+                  {selectedText.map((text, index) => (
+                    <li key={index}>{text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* <Typography variant="body1">{responseData}</Typography> */}
           </Box>
         </Stack>
       </Container>
